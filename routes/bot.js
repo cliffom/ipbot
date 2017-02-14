@@ -20,17 +20,17 @@ router.post('/', function(req, res) {
   const body = msg_text.replace(command + ' ', '')
 
   switch(command) {
-    case 'add':
+    case 'ip.add':
       ip_address = body
       res.send('Attempting to whitelist ' + ip_address + '...')
       addToSecurityGroup(ip_address, req, res)
       break
-    case 'del':
+    case 'ip.del':
       ip_address = body
       res.send('Attempting to remove ' + ip_address + ' from the whitelist...')
       delFromSecurityGroup(ip_address, req, res)
       break
-    case 'list':
+    case 'ip.list':
       res.send(entries)
       break
     default:
