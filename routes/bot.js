@@ -34,7 +34,7 @@ router.post('/', function(req, res) {
       res.send(entries)
       break
     default:
-      message = 'Invalid command.'
+      res.send('Invalid command.')
   }
 })
 
@@ -98,31 +98,35 @@ function postActionResponse(message, url) {
 
 function getEntriesFromS3() {
   const s3 = new aws.S3()
-  const s3_params = {
+  const params = {
     Bucket: process.env.AWS_S3_BUCKET,
-    Key: 'ip_whitelist.txt',
+    Key: process.env.AWS_S3_OBJECT
   }
-  s3.getObject(s3_params, function(err, res) {
-    if (err) {
-      console.log(err)
-    } else {
-      entries = JSON.parse(res.Body.toString())
+
+  s3.getObject(params).promise().then(
+    function(data) {
+      entries = JSON.parse(data.Body.toString())
+    },
+    function(error) {
+      saveEntriesToS3()
     }
-  })
+  )
 }
 
 function saveEntriesToS3() {
   const s3 = new aws.S3()
-  const s3_params = {
+  const params = {
     Bucket: process.env.AWS_S3_BUCKET,
-    Key: 'ip_whitelist.txt',
+    Key: process.env.AWS_S3_OBJECT,
     Body: JSON.stringify(entries)
   }
-  s3.putObject(s3_params, function(err, res) {
-    if (err) {
-      console.log(err)
+
+  s3.putObject(params).promise().then(
+    function(data) {},
+    function(error) {
+      console.log(error)
     }
-  })
+  )
 }
 
 module.exports = router
