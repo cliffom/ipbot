@@ -18,9 +18,6 @@ router.post('/', function(req, res) {
   const sg_group_id = process.env.AWS_SG_GROUP_ID
 
   switch(operation.raw) {
-    case 'version':
-      res.send('My version is: ' + process.env.npm_package_version)
-      break
     case 'ip.add':
       ip = body.split(" ")[0]
       description = body.replace(ip, '').trim()
@@ -55,11 +52,32 @@ router.post('/', function(req, res) {
           }
         )
       break
-    case 'ip.list':
+    case 'ip.all':
       res.send(entries.get())
       break
+    case 'ip.list':
+      myEntries = {}
+      for (var i in entries.get()) {
+        if (entries.get()[i]['added_by'] == req.body.user_name) {
+          myEntries[i] = entries.get()[i]
+        }
+      }
+      res.send(myEntries)
+      break
+    case 'version':
+      res.send('My version is: ' + process.env.npm_package_version)
+      break
     default:
-      res.send('Invalid command: ' + operation.raw)
+      const helpText = `Usage:
+      Whitelist your IP:                  /opsbot ip.add IP DESCRIPTION
+      Remove your IP from the whitelist:  /opsbot ip.del IP
+      View your whitelisted IPs:          /opsbot ip.list
+      Get the bot version:                /opsbot version
+      This help text:                     /opsbot help
+
+      You can get your IP from https://api.ipify.org`
+      res.send(helpText)
+      break
   }
 })
 
