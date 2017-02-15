@@ -18,6 +18,9 @@ router.post('/', function(req, res) {
   const sg_group_id = process.env.AWS_SG_GROUP_ID
 
   switch(operation.raw) {
+    case 'version':
+      res.send('My version is: ' + process.env.npm_package_version)
+      break
     case 'ip.add':
       ip = body.split(" ")[0]
       description = body.replace(ip, '').trim()
