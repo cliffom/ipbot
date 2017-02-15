@@ -3,96 +3,101 @@ const ec2 = new aws.EC2()
 const express = require('express')
 const got = require('got')
 const router = express.Router()
+const winston = require('winston')
+winston.level = process.env.LOG_LEVEL || 'info'
 
 let entries = {}
 getEntriesFromS3()
 
-/* health check */
 router.post('/', function(req, res) {
-  const msg_text = req.body.text
-  const user_name = req.body.user_name
-  const response_url = req.body.response_url
+  const operation = tokenizeOperation(req.body.text.split(" ").shift())
+  const body = req.body.text.replace(operation.raw, '').trim()
+  const sg_group_id = process.env.AWS_SG_GROUP_ID
 
-  let ip_address = ''
-  let message = ''
-
-  const command = msg_text.split(" ").shift()
-  const body = msg_text.replace(command + ' ', '')
-
-  switch(command) {
+  switch(operation.raw) {
     case 'ip.add':
-      ip_address = body
-      res.send('Attempting to whitelist ' + ip_address + '...')
-      addToSecurityGroup(ip_address, req, res)
+      ip = body.split(" ")[0]
+      description = body.replace(ip, '').trim()
+      res.send('Attempting to whitelist ' + ip + '...')
+
+      ec2.authorizeSecurityGroupIngress(getParams(ip, sg_group_id)).promise()
+        .then(
+          function(data) {
+            const message = `${ip} was successfully whitelisted.`
+            postActionResponse(message, req.body.response_url)
+            entriesAdd(ip, description, req.body.user_name)
+          },
+          function(error) {
+            const message = `${error.code}: ${error.message}`
+            postActionResponse(message, req.body.response_url)
+          }
+        )
       break
     case 'ip.del':
-      ip_address = body
-      res.send('Attempting to remove ' + ip_address + ' from the whitelist...')
-      delFromSecurityGroup(ip_address, req, res)
+      res.send('Attempting to remove ' + body + ' from the whitelist...')
+      ec2.revokeSecurityGroupIngress(getParams(body, sg_group_id)).promise()
+        .then(
+          function(data) {
+            const message = `${body} was successfully removed from our whitelist.`
+            postActionResponse(message, req.body.response_url)
+            entriesDel(body)
+          },
+          function(error) {
+            const message = `${error.code}: ${error.message}`
+            postActionResponse(message, req.body.response_url)
+          }
+        )
       break
     case 'ip.list':
       res.send(entries)
       break
     default:
-      res.send('Invalid command.')
+      res.send('Invalid command: ' + operation.raw)
   }
 })
 
-function addToSecurityGroup(ip, req, res) {
-  params = {
-    CidrIp: ip + '/32',
-    FromPort: -1,
-    IpProtocol: '-1',
-    GroupId: process.env.AWS_SG_GROUP_ID
+function tokenizeOperation(operation) {
+  return {
+    raw: operation,
+    class: operation.split('.')[0],
+    command: operation.split('.')[1]
   }
-
-  ec2.authorizeSecurityGroupIngress(params, function(err, data) {
-    if (err) {
-      message = `${err.code} ${err.message}`
-    }
-    else {
-      let today = new Date();
-      let date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
-      let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-      message = `${ip} was successfully whitelisted.`
-      entries[ip] = {
-        ip_address: ip,
-        added_by: req.body.user_name,
-        added_on: date + ' ' + time
-      }
-      saveEntriesToS3()
-    }
-    postActionResponse(message, req.body.response_url)
-  })
 }
 
-function delFromSecurityGroup(ip, req, res) {
-  params = {
+function getParams(ip, sg_group_id) {
+  return {
     CidrIp: ip + '/32',
     FromPort: -1,
     IpProtocol: '-1',
-    GroupId: process.env.AWS_SG_GROUP_ID
+    GroupId: sg_group_id
   }
+}
 
-  ec2.revokeSecurityGroupIngress(params, function(err, data) {
-    if (err) {
-      message = `${err.code} ${err.message}`
-    }
-    else {
-      message = `${ip} was successfully removed.`
-      delete entries[ip]
-      saveEntriesToS3()
-    }
-    postActionResponse(message, req.body.response_url)
-  })
+function entriesAdd(ip, description, user) {
+  const today = new Date();
+  const date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+  const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  entries[ip] = {
+    ip_address: ip,
+    added_by: user,
+    description: description,
+    added_on: date + ' ' + time
+  }
+  saveEntriesToS3()
+}
+
+function entriesDel(ip) {
+  delete entries[ip]
+  saveEntriesToS3()
 }
 
 function postActionResponse(message, url) {
+  winston.log('debug', message)
   got.post(url, {
     body: JSON.stringify({ text: message })
   })
-    .catch(err => {
-      console.log(err)
+    .catch(error => {
+      winston.log('error', error)
     })
 }
 
@@ -124,7 +129,7 @@ function saveEntriesToS3() {
   s3.putObject(params).promise().then(
     function(data) {},
     function(error) {
-      console.log(error)
+      winston.log('error', error)
     }
   )
 }

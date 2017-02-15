@@ -1,15 +1,15 @@
-const express = require('express')
-const path = require('path')
-const logger = require('morgan')
 const bodyParser = require('body-parser')
+const express = require('express')
+const morgan = require('morgan')
+const path = require('path')
 const app = express()
 
 const index = require('./routes/index')
 const bot = require('./routes/bot')
 
-app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
+app.use(morgan('combined'))
 app.use(express.static(path.join(__dirname, 'public')))
 
 // routes
@@ -44,6 +44,5 @@ app.use(function(err, req, res) {
     error: {}
   })
 })
-
 
 module.exports = app
