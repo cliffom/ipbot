@@ -13,6 +13,11 @@ const tokenizeOperation = botHelper.tokenizeOperation
 const postActionResponse = botHelper.postActionResponse
 
 router.post('/', function(req, res) {
+  // validate request
+  if (process.env.SLACK_TOKEN == undefined || req.body.token != process.env.SLACK_TOKEN) {
+    res.send(401)
+    return
+  }
   const operation = tokenizeOperation(req.body.text.split(" ").shift())
   const body = req.body.text.replace(operation.raw, '').trim()
   const sg_group_id = process.env.AWS_SG_GROUP_ID

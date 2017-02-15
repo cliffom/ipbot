@@ -1,6 +1,6 @@
 {
   "name": "opsbot",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Slack Bot for AWS Operations Management",
   "main": "index.js",
   "scripts": {
