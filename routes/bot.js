@@ -69,13 +69,18 @@ router.post('/', function(req, res) {
       break
     default:
       const helpText = `Usage:
-      Whitelist your IP:                  /opsbot ip.add IP DESCRIPTION
-      Remove your IP from the whitelist:  /opsbot ip.del IP
-      View your whitelisted IPs:          /opsbot ip.list
-      Get the bot version:                /opsbot version
-      This help text:                     /opsbot help
+      Whitelist your IP*:
+        /opsbot ip.add IP DESCRIPTION
+      Remove your IP from the whitelist:
+        /opsbot ip.del IP
+      View your whitelisted IPs:
+        /opsbot ip.list
+      Get the bot version:
+        /opsbot version
+      This help text:
+        /opsbot help
 
-      You can get your IP from https://api.ipify.org`
+      * You can get your IP from https://api.ipify.org`
       res.send(helpText)
       break
   }
