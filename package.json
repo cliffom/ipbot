@@ -1,7 +1,7 @@
 {
-  "name": "ipbot",
-  "version": "0.0.1",
-  "description": "IP Bot for AWS SG Management",
+  "name": "opsbot",
+  "version": "0.0.2",
+  "description": "Slack Bot for AWS Operations Management",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -15,6 +15,7 @@
     "express": "^4.14.1",
     "got": "^6.7.1",
     "morgan": "^1.8.1",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "winston": "^2.3.1"
   }
 }

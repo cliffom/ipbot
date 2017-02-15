@@ -5,7 +5,7 @@
  */
 
 var app = require('../index');
-var debug = require('debug')('ipbot:server');
+var debug = require('debug')('opsbot:server');
 var http = require('http');
 
 /**
